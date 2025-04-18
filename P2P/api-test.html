@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 3px;
+            max-height: 300px;
+            overflow: auto;
+        }
+        button {
+            padding: 8px 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <h1>P2P API Connection Test</h1>
+    
+    <div class="test-section">
+        <h3>1. Health Check API Test</h3>
+        <p>Tests basic connectivity to the backend API endpoint</p>
+        <button onclick="testHealthApi()">Run Test</button>
+        <div id="health-result" class="result">Results will appear here...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. SignalR Hub Connection Test</h3>
+        <p>Tests connectivity to the SignalR hub</p>
+        <button onclick="testSignalRHub()">Run Test</button>
+        <div id="signalr-result" class="result">Results will appear here...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Generate Invitation Code Test</h3>
+        <p>Tries to generate an invitation code from the API</p>
+        <button onclick="testGenerateInvitation()">Run Test</button>
+        <div id="invitation-result" class="result">Results will appear here...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>Connection Information</h3>
+        <p>Current page URL: <span id="current-url"></span></p>
+        <p>API base URL: <span id="api-base-url"></span></p>
+        <p>SignalR hub URL: <span id="signalr-url"></span></p>
+    </div>
+
+    <script>
+        document.getElementById('current-url').textContent = window.location.href;
+        
+        // Get base URL for API and SignalR
+        const currentHost = window.location.hostname;
+        const apiUrl = `/api`;
+        const signalrUrl = `/p2phub`;
+        
+        document.getElementById('api-base-url').textContent = apiUrl;
+        document.getElementById('signalr-url').textContent = signalrUrl;
+
+        // Test API health endpoint
+        async function testHealthApi() {
+            const resultEl = document.getElementById('health-result');
+            resultEl.innerHTML = 'Testing connection...';
+
+            try {
+                const startTime = performance.now();
+                const response = await fetch(`${apiUrl}/connectionstatus/health`);
+                const endTime = performance.now();
+                const responseTime = Math.round(endTime - startTime);
+
+                const data = await response.text();
+                
+                const details = `
+                    <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                    <p><strong>Response Time:</strong> ${responseTime}ms</p>
+                    <p><strong>Response:</strong></p>
+                    <pre>${data}</pre>
+                    <p><strong>Headers:</strong></p>
+                    <pre>${formatHeaders(response.headers)}</pre>
+                `;
+                
+                resultEl.innerHTML = response.ok 
+                    ? `<div style="color: green">✓ Connection successful</div>${details}`
+                    : `<div style="color: red">✗ Connection failed</div>${details}`;
+            } catch (error) {
+                resultEl.innerHTML = `
+                    <div style="color: red">✗ Error connecting to API</div>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+
+        // Test SignalR hub connection
+        async function testSignalRHub() {
+            const resultEl = document.getElementById('signalr-result');
+            resultEl.innerHTML = 'Testing SignalR connection...';
+
+            try {
+                const startTime = performance.now();
+                const response = await fetch(`${signalrUrl}/negotiate`);
+                const endTime = performance.now();
+                const responseTime = Math.round(endTime - startTime);
+
+                const data = await response.text();
+                let formattedData;
+                
+                try {
+                    formattedData = JSON.stringify(JSON.parse(data), null, 2);
+                } catch (e) {
+                    formattedData = data;
+                }
+                
+                const details = `
+                    <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                    <p><strong>Response Time:</strong> ${responseTime}ms</p>
+                    <p><strong>Response:</strong></p>
+                    <pre>${formattedData}</pre>
+                    <p><strong>Headers:</strong></p>
+                    <pre>${formatHeaders(response.headers)}</pre>
+                `;
+                
+                resultEl.innerHTML = response.ok 
+                    ? `<div style="color: green">✓ SignalR hub connection successful</div>${details}`
+                    : `<div style="color: red">✗ SignalR hub connection failed</div>${details}`;
+            } catch (error) {
+                resultEl.innerHTML = `
+                    <div style="color: red">✗ Error connecting to SignalR hub</div>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+
+        // Test invitation code generation
+        async function testGenerateInvitation() {
+            const resultEl = document.getElementById('invitation-result');
+            resultEl.innerHTML = 'Generating invitation code...';
+
+            try {
+                const startTime = performance.now();
+                const response = await fetch(`${apiUrl}/invitation/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const endTime = performance.now();
+                const responseTime = Math.round(endTime - startTime);
+
+                let data;
+                let formattedData;
+                
+                try {
+                    data = await response.json();
+                    formattedData = JSON.stringify(data, null, 2);
+                } catch (e) {
+                    data = await response.text();
+                    formattedData = data;
+                }
+                
+                const details = `
+                    <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                    <p><strong>Response Time:</strong> ${responseTime}ms</p>
+                    <p><strong>Response:</strong></p>
+                    <pre>${formattedData}</pre>
+                    <p><strong>Headers:</strong></p>
+                    <pre>${formatHeaders(response.headers)}</pre>
+                `;
+                
+                resultEl.innerHTML = response.ok 
+                    ? `<div style="color: green">✓ Invitation code generated successfully</div>${details}`
+                    : `<div style="color: red">✗ Failed to generate invitation code</div>${details}`;
+            } catch (error) {
+                resultEl.innerHTML = `
+                    <div style="color: red">✗ Error generating invitation code</div>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+
+        // Helper to format headers
+        function formatHeaders(headers) {
+            let result = '';
+            for (const [key, value] of headers.entries()) {
+                result += `${key}: ${value}\n`;
+            }
+            return result;
+        }
+    </script>
+</body>
+</html>
