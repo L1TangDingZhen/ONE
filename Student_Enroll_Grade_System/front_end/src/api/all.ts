@@ -3,13 +3,14 @@ import request from "./request"
 import axios from 'axios';
 
 console.log("^^^^^^^6666^^^^^^^")
-// console.log('Base API URL:', process.env.VUE_APP_API_BASE_URL);
+console.log('Base API URL:', import.meta.env.VITE_API_BASE_URL);
 
 // 获取环境变量中的API基础URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/student';
 
 // 修改apiClient配置
 const apiClient = axios.create({
+    baseURL: '', // 使用相对URL，让浏览器自动使用当前域名
     headers: {
         'Content-Type': 'application/json'
     }
@@ -20,11 +21,29 @@ export default apiClient;
 
 // 账户
 export function reqRegister(data:any){
-    return apiClient.post(`${API_BASE_URL}/register`, data);
+    console.log("Sending register request to:", `${API_BASE_URL}/register`);
+    return apiClient.post(`${API_BASE_URL}/register`, data, {
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
 }
 
 export function reqLogin(credentials:any){
-    return apiClient.post(`${API_BASE_URL}/login`, credentials);
+    console.log("Sending login request to:", `${API_BASE_URL}/login`);
+    console.log("With credentials:", JSON.stringify(credentials));
+    
+    // 确保数据格式正确 - 使用明确的JSON对象
+    const data = {
+        student_id: credentials.student_id,
+        password: credentials.password
+    };
+    
+    return apiClient.post(`${API_BASE_URL}/login`, data, {
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
 }
 
 export function reqMe(){
